@@ -5,6 +5,7 @@ using AccountTypes.Exceptions; // For: InvalidIban
 
 public readonly record struct InternationalBankAccountNumber : IEquatable<string> {
   private string Init { get; init; }
+  private Int128 Checksum { get; init; }
   
   public InternationalBankAccountNumber(in string iban) {
     Init = new(iban.ToUpper().Where(char.IsLetterOrDigit).ToArray());
@@ -25,13 +26,14 @@ public readonly record struct InternationalBankAccountNumber : IEquatable<string
         if (char.IsLetter(c)) { checksum = (checksum * 100) + (c - 'A' + 10); }
         else                  { checksum = (checksum *  10) + (c - '0');      }
       }
-      if (checksum % 97 != 1) { // 5. Check the remainder of that number on division by 97 is 1.
+      Checksum = checksum;
+      if (Checksum % 97 != 1) { // 5. Check the remainder of that number on division by 97 is 1.
         throw new InvalidIban($"Invalid check digits for iban: {Init}", nameof (iban));
       }
     }
   }
 
-  public bool Equals(InternationalBankAccountNumber other) => Init == other.Init;
+  public bool Equals(InternationalBankAccountNumber other) => Checksum == other.Checksum;
   public bool Equals(string? iban) {
     if (!string.IsNullOrEmpty(iban)) try {
       return Equals(other: new(iban ?? ""));
@@ -41,7 +43,7 @@ public readonly record struct InternationalBankAccountNumber : IEquatable<string
     } 
     return false;
   }
-  public override int GetHashCode() => Init.GetHashCode();
+  public override int GetHashCode() => Checksum.GetHashCode();
   public override string ToString() => string.Join(' ', Init.Chunk(size: 4)
                                                             .Select(static x => new string(x)));
 }
